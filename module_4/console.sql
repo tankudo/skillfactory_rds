@@ -254,10 +254,10 @@ group by model;
 
 -- Запрос по всей базе данных
 
-with countSold (flight_id, sold, avgprice) as
+with countSold (flight_id, sold_seats, total_amount) as
          (select f.flight_id,
                  count(t.ticket_no) over (partition by f.flight_id),
-                 avg(t.amount) over (partition by f.flight_id)
+                 sum(t.amount) over (partition by f.flight_id)
           from dst_project.flights f
                    join dst_project.ticket_flights t on f.flight_id = t.flight_id),
      countSeats
@@ -267,15 +267,16 @@ with countSold (flight_id, sold, avgprice) as
              from dst_project.seats s
                       join dst_project.aircrafts ar on s.aircraft_code = ar.aircraft_code)
 select f.flight_id,
-       sold,
+       sold_seats,
        scheduled_departure,
        scheduled_arrival,
-       t.avgprice,
+       t.total_amount,
        a.latitude,
        a.longitude,
        a.airport_code,
        ar.model,
-       c.availableSeats
+       c.availableSeats,
+f.departure_airport
 from dst_project.flights f
          join countSold t on f.flight_id = t.flight_id
          join dst_project.airports a on a.airport_code = f.arrival_airport
@@ -286,5 +287,11 @@ WHERE f.departure_airport = 'AAQ'
                                                       '2017-02-01',
                                                       '2017-12-01'))
   AND f.status NOT IN ('Cancelled')
-group by 1, t.sold, t.avgprice, a.latitude, a.longitude, a.airport_code, c.availableSeats, ar.model
+group by 1, t.sold_seats, t.total_amount, a.latitude, a.longitude, a.airport_code, c.availableSeats, ar.model
 order by 1;
+
+-- Координаты аэропорта Анапы
+
+select longitude, latitude
+from dst_project.airports
+WHERE airport_code= 'AAQ';
